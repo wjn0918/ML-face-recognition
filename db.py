@@ -4,14 +4,15 @@ from DBUtils.PooledDB import PooledDB
 from configparser import ConfigParser
 #读取配置
 cf = ConfigParser()
-cf.read('conf/db.conf')
+cf.read('conf/db.ini')
 
 
 def conn_mysql():
-    host = cf.get('mysql','host')
-    user_name = cf.get('mysql','user_name')
-    password = cf.get('mysql', 'password')
-    db = cf.get('mysql', 'db')
+    items = dict(cf.items('mysql'))
+    host = items['host']
+    user_name = items['user_name']
+    password = items['password']
+    db = items['db']
     pool = PooledDB(pymysql, 5, host=host, user=user_name, passwd=password, db=db, port=3306, setsession=['SET AUTOCOMMIT = 1'])  
     # 5为连接池里的最少连接数，setsession=['SET AUTOCOMMIT = 1']是用来设置线程池是否打开自动更新的配置，0为False，1为True
     conn = pool.connection()
