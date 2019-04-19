@@ -17,7 +17,7 @@
 ----
 `face_recognition`    
 用于人脸特征提取和人像对比  
-`pickle` 
+`pickle`   
 对数据进行序列化，反序列化  
 `PIL`  
 将图片数据转换成矩阵类型
