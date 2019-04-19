@@ -3,6 +3,7 @@
 
 """
 import pymysql
+import redis
 from DBUtils.PooledDB import PooledDB
 
 from pymongo import MongoClient
@@ -47,6 +48,24 @@ def conn_mongodb():
     # db.authenticate(user_name, password, db)
     db.authenticate("root", "123456")
     return db
+
+
+def conn_redis():
+    """
+    连接redis
+    :return:redis 连接对象、管道
+    pipe = r.pipeline(transaction=True)
+    r.set('name', 'zhangsan')
+    r.set('name', 'lisi')
+    pipe.execute()
+    """
+
+    items = dict(cf.items('redis'))
+    host = items['host']
+    pool = redis.ConnectionPool(host=host, port=6379, db='', decode_responses=True)
+    r = redis.Redis(connection_pool=pool)
+    pipe = r.pipeline(transaction=True)
+    return r, pipe
 
 
 

@@ -1,5 +1,5 @@
-from flask import Flask, render_template, Response, request
-from db import *
+from flask import render_template, Response, request
+from tools.db import *
 
 
 

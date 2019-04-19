@@ -2,7 +2,7 @@
 将图片转化为矩阵特征值进行存储
 """
 
-import load_data
+
 import face_recognition
 import numpy as np
 import os
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     dir_path = '/cs/face-contrast/static/images/cs/images'
     file_paths = []
-    load_data.load_faces(dir_path,file_paths)
+    # load_data.load_faces(dir_path,file_paths)
     print(len(file_paths))
     face_2_matrix()
     print((datetime.datetime.now()-start_time).seconds)
