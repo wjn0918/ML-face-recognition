@@ -39,14 +39,9 @@ def conn_mongodb():
     """
     items = dict(cf.items('mongodb'))
     host = items['host']
-    user_name = items['user_name']
-    password = items['password']
-    db = items['db']
     client = MongoClient(host, 27017)
     # 连接mydb数据库,账号密码认证
     db = client.cs
-    # db.authenticate(user_name, password, db)
-    db.authenticate("root", "123456")
     return db
 
 
@@ -91,3 +86,6 @@ def executeSql(sql,args=None,returnDict=False):
     return r
     pass
 
+
+if __name__ == '__main__':
+    conn_mongodb()

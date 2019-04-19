@@ -1,10 +1,13 @@
 """主程序"""
 import face_recognition
+import pickle
+
 import numpy as np
 
 from PIL import Image
+from bson.binary import Binary
 
-from tools.db import executeSql, conn_redis
+from tools.db import executeSql, conn_redis, conn_mongodb
 from io import BytesIO as Bytes2Data
 from io import BufferedReader
 
@@ -14,20 +17,18 @@ def init():
     初始化函数，对底库数据进行加载、特征提取、存储（定时执行,最好实现增量转换）
     :return:
     """
+    cs = []
     sql = 'select id_card,image from face_recognition'
     datum = executeSql(sql, returnDict=True)
-    r, pipe = conn_redis()
+    db = conn_mongodb()
+    data_set = db.id_face
     for item in datum:
-        id_card = item['id_card']
+        print(item)
         image = item['image']
         # 过滤掉没有图片的数据
         if image != b'':
-            feceFeature = featureExt(image)
-            # 矩阵类型转为字符串类型
-            imageStr = np.array2string(feceFeature)
-            r.set(id_card, imageStr)
-    pipe.execute()
-
+            faceFeature = featureExt(image)
+            data_set.insert_one({'id_card':item['id_card'],'image': Binary(pickle.dumps(faceFeature, protocol=-1), subtype=128)})
     pass
 
 
@@ -52,14 +53,8 @@ def image2Matrix(filename):
         im = Image.open(filename)
     elif isinstance(filename, bytes):
         im = Image.open(Bytes2Data(filename))
-    # 显示图片
-    # im.show()
-    width, height = im.size
-    im = im.convert("L")
-    data = im.getdata()
-    data = np.matrix(data, dtype='float') / 255.0
-    new_data = np.reshape(data, (height, width))
-    return new_data
+    im = im.convert('RGB')
+    return np.array(im)
 
 
 # 对接收的人像进行特征提取
@@ -77,16 +72,17 @@ def featureExt(filename):
 
 def loadKnownImage():
     """
-    加载底库中人像的特征数据
+    加载mongodb库id_face中人像的特征数据
     :return:[(身份证号：特征数据),]
     """
-    r, pipe = conn_redis()
-    pipe = r.pipeline()
-    keys = r.keys()
-    for key in keys:
-        pipe.get(key)
-        IdImages = zip(keys, pipe.execute())
-    return IdImages
+    idImages = []
+    db = conn_mongodb()
+    my_set = db.id_face
+    for i in my_set.find():
+        id_card = i['id_card']
+        image = pickle.loads(i['image'])
+        idImages.append((id_card,image))
+    return idImages
 
 def searchSimImage(unKnowImage):
     """
@@ -96,16 +92,16 @@ def searchSimImage(unKnowImage):
     """
     unknown_face_encodings = featureExt(unKnowImage)
     similar_size = 0.48
-    ids, knownImages = zip(*loadKnownImage())
-    ids = list(ids)
-    knownImages = list(knownImages)
     index = 0
     results = []
+    id_cards, known_faces = zip(*loadKnownImage())
+    id_cards = list(id_cards)
+    known_faces = list(known_faces)
     if len(unknown_face_encodings) > 0:
-        face_distances = face_recognition.compare_faces(knownImages, unKnowImage, tolerance=0.50)
+        face_distances = face_recognition.face_distance(known_faces, unknown_face_encodings)
         for face_distance in face_distances:
             if face_distance < similar_size:
-                results.append({"score":face_distance,"path":ids[index]})
+                results.append({"score":face_distance,"id_card":id_cards[index]})
                 index += 1
             else:
                 index += 1
@@ -114,9 +110,12 @@ def searchSimImage(unKnowImage):
         if len(sorted_results) > 5:
             return sorted_results[0:5]
         else:
-            return sorted_results
+            if len(sorted_results) == 0:
+                return "数据库中不存在"
+            else:
+                return sorted_results
     else:
-        return "图片中未识别到人脸"
+        return "上传图片中未识别到人脸"
 
 
 
@@ -127,4 +126,7 @@ def action(image):
 
 
 if __name__ == '__main__':
-    action('cs.jpg')
+    r = searchSimImage('cs.jpg')
+    print(r)
+
+
